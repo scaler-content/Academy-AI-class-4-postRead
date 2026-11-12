@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LLM tools post read</title>
+<style>
+:root{
+  --maroon:#6B1F2A; --maroon-deep:#4A1019; --maroon-soft:#8C3B47; --maroon-tint:#F0DCD9;
+  --beige:#F6EFE3; --beige-2:#EDE1CC; --beige-3:#DCC9A8; --paper:#FCF8F0;
+  --ink:#2B1A1D; --muted:#6E5A5C; --line:#D9C7A6;
+  --serif:Georgia,"Iowan Old Style","Palatino Linotype",serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:76px}
+body{margin:0;background:var(--beige);color:var(--ink);font:17px/1.7 var(--sans)}
+a{color:var(--maroon)}
+:focus-visible{outline:3px solid var(--maroon);outline-offset:2px;border-radius:4px}
+.skip{position:absolute;left:-999px;top:8px;background:var(--maroon);color:#fff;padding:8px 14px;border-radius:6px;z-index:100}
+.skip:focus{left:8px}
+
+/* top bar */
+.bar{position:sticky;top:0;z-index:50;background:var(--maroon-deep);color:var(--beige)}
+.bar-in{max-width:1180px;margin:auto;display:flex;align-items:center;gap:16px;padding:10px 20px}
+.bar b{font-family:var(--serif);font-size:16px;white-space:nowrap}
+.bar nav{display:flex;gap:4px;overflow-x:auto;scrollbar-width:thin}
+.bar nav a{color:var(--beige-2);text-decoration:none;font-size:13px;padding:5px 10px;border-radius:99px;white-space:nowrap}
+.bar nav a:hover,.bar nav a.on{background:var(--beige);color:var(--maroon-deep)}
+.prog{height:3px;background:var(--maroon-soft)}
+.prog i{display:block;height:100%;width:0;background:var(--beige-3)}
+
+/* hero */
+.hero{background:var(--maroon);color:var(--beige);padding:84px 20px 76px;text-align:left}
+.hero-in{max-width:880px;margin:auto}
+.kicker{letter-spacing:.14em;text-transform:uppercase;font-size:13px;color:var(--beige-3);margin:0 0 14px}
+.hero h1{font:700 clamp(36px,6vw,62px)/1.08 var(--serif);margin:0 0 20px}
+.hero p{font-size:19px;max-width:660px;color:var(--beige-2);margin:0 0 28px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips span{border:1px solid var(--beige-3);border-radius:99px;padding:4px 14px;font-size:14px;color:var(--beige)}
+
+/* layout */
+.wrap{max-width:1180px;margin:auto;padding:0 20px;display:grid;grid-template-columns:210px minmax(0,1fr);gap:48px}
+aside{position:sticky;top:84px;align-self:start;padding-top:48px;font-size:14px}
+aside ol{list-style:none;margin:0;padding:0;border-left:2px solid var(--line)}
+aside a{display:block;padding:6px 14px;color:var(--muted);text-decoration:none;margin-left:-2px;border-left:2px solid transparent}
+aside a:hover{color:var(--maroon)}
+aside a.on{color:var(--maroon);border-left-color:var(--maroon);font-weight:600}
+main{max-width:800px;padding-bottom:40px}
+section{padding:56px 0 8px;border-bottom:1px solid var(--line)}
+section:last-of-type{border-bottom:0}
+.num{font:600 14px var(--mono);color:var(--maroon-soft);letter-spacing:.08em}
+h2{font:700 clamp(28px,4vw,38px)/1.2 var(--serif);color:var(--maroon-deep);margin:6px 0 18px}
+h3{font:700 22px/1.3 var(--serif);color:var(--maroon);margin:36px 0 10px}
+p{margin:0 0 16px}
+.lead{font-size:20px;color:var(--muted)}
+ul{padding-left:22px}
+li{margin-bottom:6px}
+code{font-family:var(--mono);font-size:.88em;background:var(--beige-2);padding:1px 6px;border-radius:4px}
+
+/* components */
+.card{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:22px;margin:22px 0}
+.callout{border-left:5px solid var(--maroon);background:var(--maroon-tint);padding:16px 20px;border-radius:0 12px 12px 0;margin:24px 0}
+.callout strong:first-child{display:block;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--maroon);margin-bottom:4px}
+.callout p:last-child{margin:0}
+.quote{font:italic 22px/1.45 var(--serif);color:var(--maroon-deep);border-left:4px solid var(--beige-3);padding:4px 0 4px 20px;margin:26px 0}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.tile{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:18px}
+.tile h4{margin:0 0 6px;font:700 17px var(--serif);color:var(--maroon)}
+.tile p{margin:0;font-size:15px}
+.viz{background:var(--paper);border:2px solid var(--maroon);border-radius:16px;padding:0;margin:30px 0;overflow:hidden}
+.viz-h{background:var(--maroon);color:var(--beige);padding:10px 20px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:13px;letter-spacing:.06em;text-transform:uppercase}
+.viz-b{padding:22px}
+.viz small,.note{color:var(--muted);font-size:14px}
+button,.btn{font:600 14px var(--sans);cursor:pointer;border-radius:99px;border:1.5px solid var(--maroon);background:transparent;color:var(--maroon);padding:7px 16px}
+button:hover{background:var(--maroon-tint)}
+button[aria-pressed=true],button.primary,button[aria-selected=true]{background:var(--maroon);color:var(--beige)}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 14px}
+textarea{width:100%;font:16px/1.5 var(--mono);padding:12px;border:1.5px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);resize:vertical}
+input[type=range]{width:100%;accent-color:var(--maroon)}
+label{font-weight:600;font-size:14px}
+
+table{border-collapse:collapse;width:100%;margin:20px 0;font-size:15px;background:var(--paper)}
+th,td{border:1px solid var(--line);padding:10px 12px;text-align:left;vertical-align:top}
+th{background:var(--maroon);color:var(--beige)}
+td:first-child{font-weight:600;color:var(--maroon-deep)}
+.tw{overflow-x:auto}
+
+pre{background:var(--maroon-deep);color:var(--beige);padding:18px;border-radius:12px;overflow-x:auto;font:14px/1.6 var(--mono);margin:0}
+.codewrap{position:relative;margin:20px 0}
+.codewrap .cap{font:600 12px var(--mono);color:var(--beige-3);background:#3a0c14;padding:6px 14px;border-radius:12px 12px 0 0;display:flex;justify-content:space-between;align-items:center}
+.codewrap .cap+pre{border-radius:0 0 12px 12px}
+.copy{padding:2px 10px;font-size:12px;color:var(--beige);border-color:var(--beige-3)}
+.copy:hover{background:var(--maroon-soft)}
+.c{color:#CBB89B}.k{color:#F0B8A0}.s{color:#E6D3A3}
+
+details{background:var(--paper);border:1px solid var(--line);border-radius:12px;margin:12px 0}
+summary{cursor:pointer;padding:14px 18px;font-weight:600;color:var(--maroon-deep);list-style:none;display:flex;gap:10px;align-items:center}
+summary::before{content:"+";font:700 20px var(--mono);color:var(--maroon);width:18px}
+details[open] summary::before{content:"–"}
+details>div{padding:0 18px 14px}
+details .tag{font-size:11px;letter-spacing:.1em;text-transform:uppercase;background:var(--beige-3);color:var(--maroon-deep);border-radius:99px;padding:2px 10px}
+
+/* quiz */
+.quiz{background:var(--maroon-deep);color:var(--beige);border-radius:16px;padding:24px;margin:34px 0}
+.quiz .qh{font:600 12px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--beige-3)}
+.quiz p.q{font:600 19px/1.5 var(--serif);margin:8px 0 16px}
+.quiz .opts{display:grid;gap:10px}
+.quiz .opt{display:block;text-align:left;width:100%;border:1.5px solid var(--beige-3);color:var(--beige);border-radius:12px;padding:12px 16px;font:15px/1.5 var(--sans);font-weight:400;background:transparent}
+.quiz .opt:hover:not(:disabled){background:var(--maroon)}
+.quiz .opt.right{background:var(--beige);color:var(--maroon-deep);border-color:var(--beige);font-weight:600}
+.quiz .opt.wrong{border-style:dashed;opacity:.8;text-decoration:line-through}
+.quiz .opt:disabled{cursor:default}
+.quiz .ex{margin-top:16px;background:var(--beige);color:var(--ink);border-radius:12px;padding:14px 18px;font-size:15px}
+.quiz .ex b{color:var(--maroon)}
+
+/* tokens */
+.tok{display:inline-block;border:1px solid var(--maroon-soft);border-radius:5px;padding:1px 3px;margin:2px 1px;font:15px/1.5 var(--mono);white-space:pre;background:var(--beige-2)}
+.tok:nth-child(even){background:var(--maroon-tint)}
+.tokbox{background:#fff;border:1.5px solid var(--line);border-radius:10px;padding:12px;min-height:90px;max-height:240px;overflow:auto}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0}
+.stat{background:var(--beige-2);border-radius:10px;padding:10px;text-align:center}
+.stat b{display:block;font:700 26px var(--serif);color:var(--maroon)}
+.stat span{font-size:12px;color:var(--muted)}
+.cmp{display:grid;gap:8px;margin-top:10px}
+.cmp div{display:grid;grid-template-columns:110px 1fr 70px;gap:10px;align-items:center;font-size:14px}
+.cmp i{display:block;height:16px;background:var(--maroon);border-radius:4px;transition:width .3s}
+
+/* sampling bars */
+.sbar{display:grid;grid-template-columns:86px 1fr 60px;gap:10px;align-items:center;margin:6px 0;font-size:14px}
+.sbar .t{font-family:var(--mono);text-align:right}
+.sbar .tr{height:24px;background:var(--beige-2);border-radius:5px;position:relative;overflow:hidden}
+.sbar .f{position:absolute;inset:0 auto 0 0;background:var(--maroon);transition:width .25s}
+.sbar .g{position:absolute;inset:0 auto 0 0;border-right:2px dashed var(--maroon-soft);background:repeating-linear-gradient(45deg,transparent 0 5px,rgba(107,31,42,.18) 5px 7px)}
+.sbar .cut{font-size:11px;color:var(--maroon-soft);text-transform:uppercase;letter-spacing:.06em}
+.ctrls{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-bottom:16px}
+.ctrls output{font:700 18px var(--mono);color:var(--maroon)}
+
+/* desk */
+.desk{border:2px solid var(--maroon);border-radius:12px;padding:10px;background:#fff;min-height:60px}
+.paper{display:flex;justify-content:space-between;gap:10px;padding:7px 12px;border-radius:8px;margin:5px 0;font-size:14px;background:var(--beige-2);border:1px solid var(--beige-3)}
+.paper.out{border:2px dashed var(--maroon-soft);background:transparent;color:var(--muted);text-decoration:line-through}
+.paper.ans{background:var(--maroon-tint);border:1px solid var(--maroon-soft);font-style:italic}
+.meter{height:14px;background:var(--beige-2);border-radius:99px;overflow:hidden;margin:6px 0 12px}
+.meter i{display:block;height:100%;background:var(--maroon);transition:width .3s}
+
+/* msgs */
+.msg{display:grid;grid-template-columns:88px 1fr;gap:12px;align-items:start;margin:6px 0;padding:8px 12px;border-radius:10px;background:var(--beige-2);font-size:14px}
+.msg.off{opacity:.45;border:1.5px dashed var(--maroon-soft);background:transparent}
+.role{font:700 12px var(--mono);text-transform:uppercase;color:var(--maroon-deep);border:1.5px solid var(--maroon);border-radius:99px;text-align:center;padding:1px 6px}
+
+/* terms nest */
+.nest{display:grid;gap:0}
+.nest button{display:block;width:100%;text-align:left;border-radius:14px;margin:0;padding:12px 16px}
+.nest .l1{background:var(--beige-2);border-color:var(--maroon)}
+.nest .l2{background:var(--beige-3);width:calc(100% - 28px);margin:8px 0 0 28px}
+.nest .l3{background:var(--maroon-tint);width:calc(100% - 56px);margin:8px 0 0 56px}
+.nest .l4{background:var(--maroon-soft);color:var(--beige);width:calc(100% - 84px);margin:8px 0 8px 84px}
+.nest button[aria-pressed=true]{outline:3px solid var(--maroon);background:var(--maroon);color:var(--beige)}
+.nestinfo{margin-top:14px;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:14px 18px;min-height:96px}
+
+footer{background:var(--maroon-deep);color:var(--beige-2);text-align:center;padding:36px 20px;font-family:var(--serif);font-size:18px}
+footer small{display:block;font:13px var(--sans);color:var(--beige-3);margin-top:6px}
+
+@media(max-width:1000px){.wrap{grid-template-columns:1fr}aside{display:none}}
+@media(max-width:700px){
+  body{font-size:16px}.grid2,.grid3,.ctrls{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}
+  .bar b{display:none}.hero{padding:56px 20px}.sbar{grid-template-columns:70px 1fr 50px}
+  .cmp div{grid-template-columns:80px 1fr 56px}.msg{grid-template-columns:1fr}
+  .nest .l2{margin-left:12px;width:calc(100% - 12px)}.nest .l3{margin-left:24px;width:calc(100% - 24px)}.nest .l4{margin-left:36px;width:calc(100% - 36px)}
+}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+</style>
+<style>
+.diff{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.prompt{background:var(--maroon-deep);color:var(--beige);border-radius:12px;padding:14px 16px;font:13.5px/1.6 var(--mono);white-space:pre-wrap;margin:0;overflow-x:auto}
+.vd{border:2px solid var(--maroon);border-radius:12px;padding:14px 18px;background:var(--maroon-tint);margin-top:14px}
+.ok{color:#2e5d2e;font-weight:700}.bad{color:var(--maroon);font-weight:700}
+.chk{display:grid;gap:6px;margin:12px 0}
+.chk div{display:flex;gap:10px;align-items:baseline;padding:8px 12px;border-radius:10px;background:var(--beige-2);font-size:15px}
+.chk div.pass{border-left:5px solid #2e5d2e}.chk div.fail{border-left:5px dashed var(--maroon)}
+.convs{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:12px}
+.conv{border:2px solid var(--maroon);border-radius:12px;padding:12px;background:var(--paper);font-size:14px}
+.conv.no{border-style:dashed;background:var(--beige-2)}
+.conv h5{margin:0 0 6px;font:700 15px var(--serif);color:var(--maroon)}
+.stack{display:grid;gap:8px}
+.lay{border:2px solid var(--maroon);border-radius:10px;padding:10px 14px;font:13.5px/1.5 var(--mono);background:var(--paper)}
+.lay.off{border-style:dashed;opacity:.45;text-decoration:line-through}
+.lay b{display:block;font:700 11px var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--maroon)}
+.weights{border:3px solid var(--maroon-deep);border-radius:12px;padding:12px 16px;background:var(--beige-3);text-align:center;font-weight:700;color:var(--maroon-deep)}
+.steps{list-style:none;padding:0;margin:0}
+.steps li{display:flex;gap:12px;align-items:flex-start;padding:10px 12px;border-radius:10px;background:var(--beige-2);margin:6px 0}
+.steps li.done{opacity:.6;background:transparent;border:1.5px dashed var(--maroon-soft)}
+.steps input{margin-top:5px;width:18px;height:18px;accent-color:var(--maroon)}
+.steps label{font-weight:400;font-size:15px;cursor:pointer}
+.platforms{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:16px 0}
+.pf{border:2px solid var(--maroon);border-radius:12px;padding:12px;text-align:center;background:var(--paper);font-weight:700;color:var(--maroon)}
+.pf small{display:block;font:400 12px var(--sans);color:var(--muted);margin-top:4px}
+.pages{display:grid;grid-template-columns:repeat(15,1fr);gap:3px;margin:12px 0}
+.pg{aspect-ratio:1;border-radius:3px;background:var(--beige-2);border:1px solid var(--beige-3);font:10px var(--mono);display:flex;align-items:center;justify-content:center;color:var(--muted)}
+.pg.ret{background:var(--maroon);color:var(--beige);border-color:var(--maroon)}
+.pg.tgt{outline:3px solid var(--maroon-deep);outline-offset:1px;font-weight:700}
+.pg.tgt:not(.ret){background:var(--paper);border:2px dashed var(--maroon)}
+.cites{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin:12px 0}
+.cites button{border-radius:10px;padding:8px 0;font-family:var(--mono)}
+.cites button.c1{background:var(--beige-3);border-color:var(--maroon-soft);color:var(--maroon-deep)}
+.cites button.c2{background:var(--maroon);color:var(--beige)}
+.cites button.c3{border-style:dashed;text-decoration:line-through;background:var(--maroon-tint)}
+.tl{position:relative;margin:10px 0 0;padding-left:26px;border-left:3px solid var(--maroon)}
+.tl .ev{position:relative;margin:0 0 16px;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:10px 14px}
+.tl .ev::before{content:"";position:absolute;left:-36px;top:14px;width:16px;height:16px;border-radius:50%;background:var(--paper);border:3px solid var(--maroon)}
+.tl .ev.past::before{background:var(--maroon)}
+.tl .ev b{font-family:var(--serif);color:var(--maroon-deep)}
+.tl .ev .st{float:right;font:700 11px var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--maroon)}
+.fcols{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.fcols .tile.no{border-style:dashed}
+tr.hl td{background:var(--maroon-tint)}
+td.hc,th.hc{background:var(--maroon-tint);outline:2px solid var(--maroon)}
+th.hc{background:var(--maroon-deep)}
+@media(max-width:700px){.diff,.fcols,.convs,.platforms{grid-template-columns:1fr}.pages{grid-template-columns:repeat(10,1fr)}.cites{grid-template-columns:repeat(3,1fr)}}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="bar" role="banner">
+  <div class="bar-in">
+    <b>LLM tools post read</b>
+    <nav aria-label="Sections" id="topnav"></nav>
+  </div>
+  <div class="prog" aria-hidden="true"><i id="pbar"></i></div>
+</header>
+
+<div class="hero">
+  <div class="hero-in">
+    <p class="kicker">Class 4 · AI and Agents</p>
+    <h1>LLM tools post read</h1>
+    <p>Save your instructions once instead of pasting them forever: skills, custom instructions and projects across Gemini, ChatGPT and Claude, what attached files really do, Deep Research, and why you should own your prompts.</p>
+    <div class="chips"><span>Saved instructions</span><span>Attached knowledge</span><span>Skills &amp; Projects</span><span>Deep Research</span><span>Portability</span></div>
+  </div>
+</div>
+
+<div class="wrap">
+<aside aria-label="Table of contents"><ol id="toc"></ol></aside>
+<main id="main">
+
+<!-- 1 -->
+<section id="s1" data-title="Amnesia problem">
+  <span class="num">01</span>
+  <h2>The amnesia problem you already solved once</h2>
+  <p class="lead">Your app's instructions live in <code>summarizer.py</code>, in a variable called <code>SYSTEM_PROMPT</code>, and your code sends them on every single call without you thinking about it. You have already solved this problem once, in code.</p>
+  <p>Now open a chat window and the model has never heard of you. You paste your instructions again. And again. Every new conversation. Every major platform has shipped the same answer: a place to save your instructions so they are applied automatically.</p>
+  <div class="viz">
+    <div class="viz-h"><span>Visualizer · Who supplies the instructions?</span><span>Select a setup</span></div>
+    <div class="viz-b">
+      <div class="row" role="group" aria-label="Setup" id="amode">
+        <button data-m="chat" aria-pressed="true">Plain chat window</button>
+        <button data-m="code" aria-pressed="false">Your own app</button>
+        <button data-m="saved" aria-pressed="false">Chat with saved instructions</button>
+      </div>
+      <div class="convs" id="convs" aria-live="polite"></div>
+      <div class="vd" id="anote"></div>
+    </div>
+  </div>
+  <p>Today you set that up on all three major platforms, and then look at what happened to two of them this month.</p>
+</section>
+
+<!-- 2 -->
+<section id="s2" data-title="Three ways to remember">
+  <span class="num">02</span>
+  <h2>Three ways to make a model remember</h2>
+  <p>When people say they want AI that "knows our business", they mean one of three different things. They get muddled constantly and they have different answers.</p>
+  <div class="tw"><table>
+    <tr><th>What you want</th><th>What it is called</th><th>What it actually does</th></tr>
+    <tr><td>It should always behave this way</td><td>Saved instructions</td><td>Your system prompt, stored and re-sent for you</td></tr>
+    <tr><td>It should know these documents</td><td>Attached knowledge</td><td>Your files sit alongside the chat and the model reads from them</td></tr>
+    <tr><td>It should be able to do things</td><td>Connected tools</td><td>The model can call something outside itself</td></tr>
+  </table></div>
+  <p>Today covers the first two. The third is the second half of this module.</p>
+
+  <h3>What none of them are</h3>
+  <div class="callout"><strong>Important</strong><p>None of these train the model. Nothing you type into a skill or a project changes the model itself. Your instructions and your files are supplied to the model at the moment you ask, exactly as if you had pasted them. The platform is doing the pasting. It is automated pasting, not learning, just like <code>SYSTEM_PROMPT</code> in your own file.</p></div>
+
+  <div class="viz">
+    <div class="viz-h"><span>Visualizer · What the model receives</span><span>Toggle what the platform pastes</span></div>
+    <div class="viz-b">
+      <div class="row" id="asm" role="group" aria-label="Layers"></div>
+      <div class="stack" id="stk" aria-live="polite"></div>
+      <div class="weights" style="margin-top:10px">The model's weights: unchanged, in every case</div>
+    </div>
+  </div>
+
+  <details><summary>Why does my assistant seem to get better the more I use it? <span class="tag">Common doubt</span></summary><div>
+    <p>Usually because you refined the instructions, not because it learned. Some platforms do have a separate memory feature that carries facts between chats, and that is a different thing. If you did not edit the instructions and it still improved, memory is the likely explanation, or your own prompts got better.</p></div></details>
+  <div class="quiz" data-quiz="q1"></div>
+</section>
+
+<!-- 3 -->
+<section id="s3" data-title="Gemini skills">
+  <span class="num">03</span>
+  <h2>Gemini Skills, hands-on</h2>
+  <p>A skill is a saved set of instructions that Gemini applies when it is relevant, or when you call it by name. That is the whole idea. Skills are available on personal Google accounts for users aged 18 and over.</p>
+  <h3>Build it</h3>
+  <ul class="steps" id="gsteps" data-steps></ul>
+  <div class="tw"><table>
+    <tr><th>Field</th><th>What goes in it</th></tr>
+    <tr><td>Name</td><td>Lowercase words joined by hyphens, as the placeholder shows: <code>release-notes-writer</code></td></tr>
+    <tr><td>Description</td><td>One line on when this skill should be used</td></tr>
+    <tr><td>Instructions</td><td>The actual rules, the same shape as your <code>SYSTEM_PROMPT</code></td></tr>
+  </table></div>
+  <p>Paste this into Instructions:</p>
+  <div class="codewrap"><div class="cap"><span>Instructions</span><button class="copy">Copy</button></div><pre>You turn rough developer notes into release notes that customers can read.
+
+For every set of notes you receive:
+- Lead with what changed for the customer, not what changed in the code
+- Group items under: New, Improved, Fixed
+- One sentence per item, in plain language
+- No ticket numbers, branch names, internal service names or acronyms
+- If an item only matters to the team and not to a customer, leave it out
+
+If the notes are too vague to write an entry, list that item under
+"Need more detail" instead of guessing what it does.</pre></div>
+  <p>Then, in a new chat, type <code>/</code> followed by the skill name and paste these notes:</p>
+  <div class="codewrap"><div class="cap"><span>Developer notes</span><button class="copy">Copy</button></div><pre>- bumped auth-svc to 2.4.1, fixes the token refresh race (JIRA-8821)
+- added dark mode toggle in settings
+- cart no longer loses items when you switch tabs
+- refactored the payment retry loop, no user visible change
+- new export button on reports page, csv only for now
+- fixed that thing where the date picker shows wrong month in Safari</pre></div>
+
+  <div class="viz">
+    <div class="viz-h"><span>Visualizer · Check the output</span><span>Illustrative draft, editable</span></div>
+    <div class="viz-b">
+      <p style="margin-top:0">Check three things: did it drop the refactor, did it drop JIRA-8821, and did it group correctly. Try both drafts, or edit one.</p>
+      <div class="row"><button id="rn1" aria-pressed="true">Draft that missed the rules</button><button id="rn2" aria-pressed="false">Draft that followed them</button></div>
+      <textarea id="rnin" rows="9" aria-label="Release notes draft"></textarea>
+      <div class="chk" id="rnres" aria-live="polite"></div>
+    </div>
+  </div>
+  <p>Expect some variation: the same instructions do not produce identical behaviour every run. If the refactor line keeps appearing, improve the rule. Change "leave it out" to "leave it out, including anything described as a refactor, cleanup or internal change" and run it again. That is Class 2's iteration loop applied to a saved prompt.</p>
+
+  <div class="callout"><strong>Differences from a Gem</strong><p>You can hold up to 100 active skills, and you can combine several in one chat. But most of the old Gem tools do not work inside a skill, including Deep Research, Canvas and Guided Learning. If you need Deep Research, run it in a normal chat (Section 8).</p></div>
+  <details><summary>Do I have to type the slash every time? <span class="tag">Common doubt</span></summary><div>
+    <p>No. Gemini can also apply a skill on its own when it judges it relevant, which is why the Description field matters. The slash is how you force it.</p></div></details>
+  <div class="quiz" data-quiz="q2"></div>
+</section>
+
+<!-- 4 -->
+<section id="s4" data-title="ChatGPT">
+  <span class="num">04</span>
+  <h2>ChatGPT: the global layer and Projects</h2>
+  <p>ChatGPT splits the same idea across two features, and knowing which is which saves a lot of confusion. Projects are available on every plan, including Free.</p>
+  <div class="tw"><table>
+    <tr><th>Feature</th><th>Scope</th><th>Use it for</th></tr>
+    <tr><td>Custom instructions</td><td>Every chat you have, everywhere</td><td>How you want to be spoken to, always</td></tr>
+    <tr><td>Projects</td><td>Only chats inside that project</td><td>A specific job, with its own instructions and files</td></tr>
+  </table></div>
+
+  <div class="viz">
+    <div class="viz-h"><span>Visualizer · Which instructions apply?</span><span>Choose where you start the chat</span></div>
+    <div class="viz-b">
+      <div class="row" role="group" aria-label="Where"><button id="w1" aria-pressed="true">A regular chat</button><button id="w2" aria-pressed="false">A chat inside "Release Notes"</button></div>
+      <div class="stack" id="wstk" aria-live="polite"></div>
+    </div>
+  </div>
+
+  <h3>Custom instructions: the global layer</h3>
+  <ul class="steps" data-steps id="csteps"></ul>
+  <div class="codewrap"><div class="cap"><span>Example</span><button class="copy">Copy</button></div><pre>I am a backend developer in India. Use metric units and rupees. Give me the answer first and the explanation after. Do not open replies with a compliment.</pre></div>
+  <p>The same Personalization page also has preset dials above custom instructions: Base style and tone, Warmth, Enthusiasm, Emoji, Visual answers, and Headers and lists. They are the same idea as a written instruction, pre-packaged, and a good illustration that a preference and a job belong in different places.</p>
+  <div class="callout"><strong>Important</strong><p>This is the right slot for preferences and the wrong slot for a job. Anything task-specific belongs in a project, otherwise it leaks into every unrelated conversation you have.</p></div>
+
+  <h3>Projects: the same assistant you just built</h3>
+  <ul class="steps" data-steps id="psteps"></ul>
+  <p>Which of the two gave you the more usable release notes, the Gemini skill or the project? There is no correct answer. This is the Class 1 lesson that the best model is the one that answers your question best, with evidence you generated yourself.</p>
+  <details><summary>If I put instructions in both custom instructions and a project, which wins? <span class="tag">Common doubt</span></summary><div>
+    <p>Both are applied. They stack rather than compete, which is fine when they agree and confusing when they contradict. Keep preferences global and jobs local and you will not hit it.</p></div></details>
+</section>
+
+<!-- 5 -->
+<section id="s5" data-title="Claude Projects">
+  <span class="num">05</span>
+  <h2>Claude Projects</h2>
+  <p>Claude's version combines both slots in one place: instructions and files, scoped to a project.</p>
+  <ul class="steps" data-steps id="clsteps"></ul>
+  <p>Claude cannot see the project name or description fields. They are for you.</p>
+
+  <div class="viz">
+    <div class="viz-h"><span>Diagram · Portability</span><span>The text stays; the box changes</span></div>
+    <div class="viz-b">
+      <div class="prompt" style="text-align:center;font-weight:700">Your instructions: "You turn rough developer notes into release notes…"</div>
+      <div style="text-align:center;font-size:22px;color:var(--maroon)" aria-hidden="true">↓ ↓ ↓</div>
+      <div class="platforms">
+        <div class="pf">Gemini<small>a skill</small></div>
+        <div class="pf">ChatGPT<small>a project</small></div>
+        <div class="pf">Claude<small>a project</small></div>
+      </div>
+      <p class="note" style="margin:0">You have now set up the same assistant three times. The instructions did not change once. Only the box they went into changed.</p>
+    </div>
+  </div>
+  <div class="callout"><strong>Important</strong><p>That portability is the real takeaway, and Section 9 is why it is not a theoretical concern.</p></div>
+  <p class="note">Free accounts can keep up to five projects. On paid plans a project with a lot of attached material switches to a retrieval mode rather than putting everything in context. That is Class 5's topic.</p>
+</section>
+
+<!-- 6 -->
+<section id="s6" data-title="Which one when">
+  <span class="num">06</span>
+  <h2>Which one when</h2>
+  <p>For saved instructions all three do the same job, so use whichever platform you already live in. Pick by the shape of your work, not the feature list.</p>
+  <div class="viz">
+    <div class="viz-h"><span>Visualizer · Pick by the shape of your work</span><span>Select what you need</span></div>
+    <div class="viz-b">
+      <div class="row" id="need" role="group" aria-label="Need">
+        <button data-n="skill" aria-pressed="false">Call it mid-conversation</button>
+        <button data-n="project" aria-pressed="false">An ongoing thread for one job</button>
+        <button data-n="ci" aria-pressed="false">A rule for everything I ask</button>
+      </div>
+      <div class="vd" id="needout" aria-live="polite">Select a need to see which feature fits.</div>
+      <div class="tw"><table id="ptab">
+        <tr><th></th><th data-c="1">Gemini skill</th><th data-c="2">ChatGPT Project</th><th data-c="3">Claude Project</th></tr>
+        <tr><td>Saved instructions</td><td data-c="1">Yes</td><td data-c="2">Yes</td><td data-c="3">Yes</td></tr>
+        <tr><td>Attached files</td><td data-c="1">Yes</td><td data-c="2">Yes</td><td data-c="3">Yes</td></tr>
+        <tr><td>Separate chat history for the job</td><td data-c="1">No</td><td data-c="2">Yes</td><td data-c="3">Yes</td></tr>
+        <tr><td>A global "always do this" layer</td><td data-c="1">Partly, via auto-applied skills</td><td data-c="2">Yes, custom instructions</td><td data-c="3">No, per project</td></tr>
+        <tr><td>Invoke it by name mid-chat</td><td data-c="1">Yes, with <code>/</code></td><td data-c="2">No, you open the project</td><td data-c="3">No, you open the project</td></tr>
+        <tr><td>Free tier can build it</td><td data-c="1">Yes, 18 and over</td><td data-c="2">Yes</td><td data-c="3">Yes, up to five projects</td></tr>
+      </table></div>
+    </div>
+  </div>
+  <p>A project is a workspace with a history. That is the real difference from a skill, which is the only one of the three you can summon by name without leaving the chat you are in.</p>
+  <div class="quiz" data-quiz="q3"></div>
+</section>
+
+<!-- 7 -->
+<section id="s7" data-title="Attaching knowledge">
+  <span class="num">07</span>
+  <h2>Attaching knowledge: what a file does and does not do</h2>
+  <p>This is where expectations get set badly. Attaching a file means the model can use its contents when it answers. It is the grounding idea from Class 3, made permanent for that space instead of pasted per chat.</p>
+  <div class="fcols">
+    <div class="tile"><h4>What it does</h4>
+      <p><b>Answers from your material</b> rather than from memory. Upload your actual refund policy and the answers come from that policy, not from a general sense of what refund policies usually say.</p>
+      <p style="margin-top:8px"><b>Survives across chats</b> in that space. You upload once, not every conversation.</p></div>
+    <div class="tile no"><h4>What it does not do</h4>
+      <p><b>Does not train the model.</b> Same point as Section 2.</p>
+      <p style="margin-top:8px"><b>Does not guarantee it reads all of it.</b> With a lot of material, platforms retrieve the parts that look relevant. A fact in your file can still be missed.</p>
+      <p style="margin-top:8px"><b>Does not make answers true.</b> An out-of-date document gives you a confident assistant citing an out-of-date document.</p></div>
+  </div>
+
+  <div class="viz">
+    <div class="viz-h"><span>Visualizer · Retrieval on a 90-page PDF</span><span>Illustrative page selection</span></div>
+    <div class="viz-b">
+      <label for="tp">The rule you ask about is on page <output id="tpo">74</output></label>
+      <input type="range" id="tp" min="1" max="90" value="74">
+      <div class="pages" id="pages" role="img" aria-label="Grid of 90 pages; dark pages were retrieved"></div>
+      <div class="vd" id="pnote" aria-live="polite"></div>
+      <p class="note" style="margin:10px 0 0">Solid pages are the parts the platform judged relevant and showed the model. The outlined page is the one you need. Which pages get picked is illustrative: how that judgement is really made is Class 5.</p>
+    </div>
+  </div>
+
+  <div class="callout"><strong>Important</strong><p>The Class 3 rule still applies and matters more here, not less. Add "answer only from the attached files, and say so if it is not in them" to your instructions. Attaching a file does not stop the model falling back on general knowledge unless you say so.</p></div>
+  <p>To see the difference yourself, ask the Release Notes project a question your notes do not cover, such as what the refund window is. Then upload any short policy document and ask again: the answer changes from a general one to a specific, sourced one.</p>
+  <div class="quiz" data-quiz="q4"></div>
+</section>
+
+<!-- 8 -->
+<section id="s8" data-title="Deep Research">
+  <span class="num">08</span>
+  <h2>Deep Research</h2>
+  <p>All three platforms have a research mode, and it is one of the most used features in any of them. A normal answer takes seconds and comes from one pass. Research mode takes several minutes: the model plans what to look into, runs many searches, reads what it finds, and writes a structured report with citations.</p>
+  <p>It is the first thing in this module that visibly thinks and acts in a loop before answering. Hold that thought: that loop is what Class 7 calls an agent.</p>
+
+  <div class="viz">
+    <div class="viz-h"><span>Diagram · The research loop</span><span>Step through</span></div>
+    <div class="viz-b">
+      <div class="row"><button id="rprev">‹ Back</button><button id="rnext" class="primary">Next ›</button><small id="rstep"></small></div>
+      <div class="stack" id="rstk" aria-live="polite"></div>
+    </div>
+  </div>
+
+  <h3>When it is worth it</h3>
+  <div class="tw"><table>
+    <tr><th>Use research mode</th><th>Use a normal question</th></tr>
+    <tr><td>You would otherwise open fifteen tabs</td><td>One fact you can check in one tab</td></tr>
+    <tr><td>Comparing options across many sources</td><td>Something in a document you already have</td></tr>
+    <tr><td>You need the sources listed for someone else</td><td>You just need a quick answer for yourself</td></tr>
+    <tr><td>The answer should survive being forwarded</td><td>Speed matters more than depth</td></tr>
+  </table></div>
+
+  <h3>Writing a brief that gets a good report</h3>
+  <p>Research mode rewards the same specificity as any prompt, plus two things of its own: say what the comparison axes are, so the report has a spine, and say what the output is for, so the depth and tone fit. Example:</p>
+  <div class="codewrap"><div class="cap"><span>Research brief</span><button class="copy">Copy</button></div><pre>Compare the three main electric two-wheeler brands available in Pune on price, range, service network and real owner complaints. Cite your sources.</pre></div>
+  <p>Launch it early in whichever platform has a free run available, then carry on with something else. When it finishes, scroll the report, find the citation list, and open a few of the citations.</p>
+
+  <div class="viz">
+    <div class="viz-h"><span>Try it · Citation checker</span><span>Click a citation to cycle its status</span></div>
+    <div class="viz-b">
+      <p style="margin-top:0">A report comes back with eighteen citations. Select one to cycle: unchecked → checked, supports the claim → checked, does not support it.</p>
+      <div class="cites" id="cites"></div>
+      <div class="vd" id="cres" aria-live="polite"></div>
+    </div>
+  </div>
+
+  <div class="callout"><strong>Important</strong><p>Everything from Class 3 applies. A research report is far better grounded than a plain answer, because the model is quoting things it actually fetched. It is not verified. The citations are the point, and the point is only worth anything if somebody clicks them.</p></div>
+  <div class="callout"><strong>On Gemini</strong><p>Deep Research does not run inside a skill. It is one of the tools that did not carry over. Run it in an ordinary chat.</p></div>
+  <details><summary>Does it search the whole internet? <span class="tag">Common doubt</span></summary><div>
+    <p>It searches what its search tool can reach, which is a lot but not everything, and it cannot see anything behind a login or a paywall. For regulated or academic work, treat the report as a starting map, not a literature review.</p></div></details>
+  <div class="quiz" data-quiz="q5"></div>
+</section>
+
+<!-- 9 -->
+<section id="s9" data-title="Vendors changed">
+  <span class="num">09</span>
+  <h2>The month both vendors changed their minds</h2>
+  <p>You set up the same assistant three times and the instructions never changed. Here is why that mattered.</p>
+  <h3>What happened</h3>
+  <div class="tw"><table>
+    <tr><th></th><th>Gemini Gems</th><th>OpenAI Custom GPTs</th></tr>
+    <tr><td>Announced</td><td>Replaced by skills</td><td>Retiring, announced 11 September 2026</td></tr>
+    <tr><td>Can you still make one</td><td>No, read-only from 17 November 2026</td><td>No, creation restricted to Business, Enterprise and Edu</td></tr>
+    <tr><td>When it stops</td><td>Removed 17 December 2026</td><td>Stops running 11 December 2026</td></tr>
+    <tr><td>What replaces it</td><td>Skills</td><td>Plugins, with the instructions becoming skills</td></tr>
+    <tr><td>Workspace or business accounts</td><td>March 2027, education June 2027</td><td>Follows each workspace's own notice</td></tr>
+  </table></div>
+
+  <div class="viz">
+    <div class="viz-h"><span>Visualizer · Timeline</span><span>Status is relative to the date you open this page</span></div>
+    <div class="viz-b"><div class="tl" id="tl"></div></div>
+  </div>
+  <p>Two different companies, the same six weeks, the same direction. Both moved from "build a custom assistant object" to "save reusable instructions that the model picks up when relevant", and both called the new thing skills.</p>
+
+  <h3>The lesson</h3>
+  <div class="callout"><strong>Important</strong><p>The valuable thing is your instructions and your files. The feature wrapping them is temporary, and this month is the proof. Keep the text of your instructions somewhere you own, in a document or a repository, and treat every platform's box as a place you paste them into.</p></div>
+
+  <div class="viz">
+    <div class="viz-h"><span>Visualizer · If the vendor retires the box</span><span>Where do your prompts live?</span></div>
+    <div class="viz-b">
+      <div class="row" role="group"><button id="lv" aria-pressed="true">Only inside the vendor's product</button><button id="lo" aria-pressed="false">In a document or repo you own</button></div>
+      <div class="vd" id="lres" aria-live="polite"></div>
+    </div>
+  </div>
+  <p>Your own app already does this correctly. <code>SYSTEM_PROMPT</code> sits in a file you control, and no vendor can retire it. If the honest answer to "where do my prompts live right now?" is "inside one vendor's product", that is today's action item.</p>
+  <p class="note">If you had built a product on Custom GPTs in June, the instinct to reach for is an export, a version history, and a thin layer of your own between the vendor and the user.</p>
+</section>
+
+<!-- 10 -->
+<section id="s10" data-title="Wrap-up">
+  <span class="num">10</span>
+  <h2>Wrap-up and what is next</h2>
+  <h3>What you can do now</h3>
+  <div class="grid2">
+    <div class="tile"><h4>Name the three things</h4><p>People mean one of three things by "AI that knows our business", and you can say which one saved instructions solves.</p></div>
+    <div class="tile"><h4>Set up a reusable assistant</h4><p>On all three platforms. A skill is summoned by name mid-chat, a project is a workspace with a history, custom instructions are the global layer.</p></div>
+    <div class="tile"><h4>Attach knowledge honestly</h4><p>You can say what it does and does not buy you.</p></div>
+    <div class="tile"><h4>Run a research brief</h4><p>Its value is in the citations, which means clicking them.</p></div>
+  </div>
+  <p style="margin-top:16px">And you know to keep your instructions somewhere you own, because you watched two vendors retire theirs in the same month.</p>
+
+  <h3>Next class</h3>
+  <p>Class 5 is retrieval. Twice in this class you attached a file and the platform decided what to show the model, and in Quiz 4 that decision got it wrong. Next class is about how that decision is actually made: how documents get cut up, how a machine decides which piece answers your question, and why every "chat with your documents" product on the market works the same way underneath.</p>
+
+  <h3>Resources</h3>
+  <div class="tw"><table>
+    <tr><th>Resource</th><th>Link</th></tr>
+    <tr><td>Gemini, for skills</td><td><a href="https://gemini.google.com/customize/skills" target="_blank" rel="noopener">gemini.google.com/customize/skills</a></td></tr>
+    <tr><td>ChatGPT</td><td><a href="https://chat.openai.com" target="_blank" rel="noopener">chat.openai.com</a></td></tr>
+    <tr><td>Claude projects</td><td><a href="https://claude.ai/projects" target="_blank" rel="noopener">claude.ai/projects</a></td></tr>
+    <tr><td>Google's note on the move from Gems to skills</td><td><a href="https://support.google.com/gemini/answer/18560919" target="_blank" rel="noopener">support.google.com/gemini/answer/18560919</a></td></tr>
+    <tr><td>OpenAI's note on GPTs in ChatGPT</td><td><a href="https://help.openai.com/en/articles/8554407-gpts-in-chatgpt" target="_blank" rel="noopener">help.openai.com/en/articles/8554407-gpts-in-chatgpt</a></td></tr>
+  </table></div>
+</section>
+
+</main>
+</div>
+
+<footer>LLM tools post read<small>Class 4 · AI and Agents</small></footer>
+
+<script>
+(function(){
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const esc=t=>t.replace(/&/g,'&amp;').replace(/</g,'&lt;');
+function row(ok,t){return `<div class="${ok?'pass':'fail'}"><b class="${ok?'ok':'bad'}">${ok?'✓':'✗'}</b><span>${t}</span></div>`}
+
+/* nav */
+const secs=$$('main section');
+$('#topnav').innerHTML=secs.map(s=>`<a href="#${s.id}">${s.dataset.title}</a>`).join('');
+$('#toc').innerHTML=secs.map((s,i)=>`<li><a href="#${s.id}">${String(i+1).padStart(2,'0')} · ${s.dataset.title}</a></li>`).join('');
+function onScroll(){
+  const h=document.documentElement;
+  $('#pbar').style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight)*100)+'%';
+  let cur=secs[0].id;secs.forEach(s=>{if(s.getBoundingClientRect().top<140)cur=s.id});
+  $$('#topnav a,#toc a').forEach(a=>a.classList.toggle('on',a.getAttribute('href')==='#'+cur));
+}
+addEventListener('scroll',onScroll,{passive:true});onScroll();
+$$('.copy').forEach(b=>b.addEventListener('click',()=>{
+  const t=b.closest('.codewrap').querySelector('pre').innerText;
+  (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>{b.textContent='Copied'},()=>{b.textContent='Select & copy'});
+  setTimeout(()=>b.textContent='Copy',1600);
+}));
+function group(sel,fn){const bs=$$(sel);bs.forEach(b=>b.addEventListener('click',()=>{bs.forEach(x=>x.setAttribute('aria-pressed',x===b));fn(b)}))}
+
+/* quizzes */
+const Q={
+ q1:{q:'A team uploads twelve policy documents to a project and says the assistant has now "learned the company handbook". What is the most accurate description?',
+  o:['The documents are supplied to the model as context when it answers, and the model itself is unchanged','The model has been fine-tuned on the documents and now holds that knowledge permanently','The documents were converted into saved instructions that are re-sent on every message','Nothing was retained, since uploaded files are discarded as soon as the conversation that used them ends'],a:0,
+  e:'Attached knowledge is material handed to the model at answer time. The model\'s weights are untouched, which is why the same model in a different project knows none of it. B is the misconception this section exists to kill. C confuses knowledge with instructions, which are a separate slot. D is wrong because the files persist in the project across chats.'},
+ q2:{q:'You build a skill with careful instructions, use it for a week, and it works well. A colleague asks you to make it also handle bug triage, which needs a different format and a different tone. What is the better move?',
+  o:['Add the triage rules to the same skill, with a line telling it to detect which task is being asked for','Raise the temperature so the single skill can handle a wider range of tasks','Build a second skill for triage','Keep one skill and paste the triage format manually whenever that task comes up, since maintaining two sets of instructions doubles the work'],a:2,
+  e:'This is Class 2\'s chaining lesson in a new form: one job per set of instructions. The platform lets you hold a hundred of them and combine them in a chat, so there is no reason to overload one. A makes the skill decide what it is before it does anything, which is the "and between two verbs" signal. D throws away the only reason you built it.'},
+ q3:{q:'A content lead wants every chat she has, on any topic, to come back in British English with no bullet points. Which feature is built for this?',
+  o:['A Gemini skill containing the language and formatting rules','ChatGPT custom instructions','A project per topic, each with the same instructions pasted in','A knowledge file listing the formatting rules, attached to each project she creates'],a:1,
+  e:'The requirement is "every chat, on any topic", which is the global layer. C only applies inside the space she remembered to open. A is closer than it looks, since a skill can be auto-applied, but that is a judgement the model makes per conversation rather than a guarantee. D puts a preference into the knowledge slot, which is for material, not behaviour.'},
+ q4:{q:'A support team uploads a 90-page policy PDF to a project and asks about a rule on page 74. The assistant answers confidently and gets the rule wrong. What is the most likely explanation?',
+  o:['The PDF failed to upload and the project is empty','The model was trained before the policy existed, so it cannot access it','PDFs cannot be read by these tools, so the document needs converting to plain text before it is uploaded again','The platform retrieved the parts it judged relevant, and page 74 was not among them'],a:3,
+  e:'With a large document the whole thing is usually not placed in front of the model. The relevant-looking parts are, and relevance is judged imperfectly. B describes how training works and is irrelevant to attached files, which are supplied at answer time. A and C are both worth ruling out in thirty seconds, and neither explains a confident wrong answer about a rule that is genuinely in the file. How that judgement actually gets made is Class 5.'},
+ q5:{q:'A research report comes back well structured, confident, and with eighteen citations. Two of the links go to pages that do not mention the claim attached to them. What is the right conclusion about the other sixteen?',
+  o:['They are unverified, and the two failures tell you the checking has to happen before you forward it','The whole report should be discarded as unreliable','The citations were probably rendered incorrectly by the interface rather than being genuinely wrong','They are fine, since two bad links out of eighteen is an acceptable error rate for a first draft and the remaining sixteen can be relied on'],a:0,
+  e:'Finding two bad citations does not grade the other sixteen either way. It tells you the report is the kind of artefact that needs checking before it carries your name. B overcorrects and throws away real work. D treats an error rate measured on a sample of two as a known quantity, which is the mistake that gets people quoting bad numbers in meetings.'}
+};
+$$('.quiz').forEach(box=>{
+  const id=box.dataset.quiz,d=Q[id];
+  box.innerHTML=`<div class="qh">Knowledge check</div><p class="q" id="${id}q">${d.q}</p><div class="opts" role="group" aria-labelledby="${id}q">${d.o.map((t,i)=>`<button class="opt" data-i="${i}">${t}</button>`).join('')}</div><div aria-live="polite" class="exwrap"></div>`;
+  box.querySelector('.opts').addEventListener('click',e=>{
+    const b=e.target.closest('.opt');if(!b)return;const i=+b.dataset.i;
+    box.querySelectorAll('.opt').forEach(x=>{x.disabled=true;const j=+x.dataset.i;
+      if(j===d.a){x.classList.add('right');x.insertAdjacentHTML('afterbegin','✓ ')}
+      else if(j===i){x.classList.add('wrong');x.insertAdjacentHTML('afterbegin','✗ ')}});
+    box.querySelector('.exwrap').innerHTML=`<div class="ex"><b>${i===d.a?'That\'s right.':'Not quite.'}</b> ${d.e}</div>`;
+  });
+});
+
+/* amnesia */
+const AM={
+ chat:{c:['Conversation 1','Conversation 2','Conversation 3'],t:['You paste your instructions','You paste them again','And again'],ok:false,n:'The model has never heard of you. Every new conversation starts from nothing, so you do the pasting.'},
+ code:{c:['Call 1','Call 2','Call 3'],t:['Code sends SYSTEM_PROMPT','Code sends SYSTEM_PROMPT','Code sends SYSTEM_PROMPT'],ok:true,n:'Your app has no amnesia problem: the prompt is in the file and goes out on every single call.'},
+ saved:{c:['Conversation 1','Conversation 2','Conversation 3'],t:['Platform pastes your saved instructions','Platform pastes them again','Platform pastes them again'],ok:true,n:'Same job as your own app, for the chat window: the instructions are stored and re-sent for you.'}
+};
+function showAm(k){const a=AM[k];
+  $('#convs').innerHTML=a.c.map((c,i)=>`<div class="conv ${a.ok?'':'no'}"><h5>${c}</h5><p style="margin:0"><b class="${a.ok?'ok':'bad'}">${a.ok?'✓':'✗'}</b> ${a.t[i]}</p></div>`).join('');
+  $('#anote').innerHTML=a.n}
+group('#amode button',b=>showAm(b.dataset.m));showAm('chat');
+
+/* assembler */
+const AS=[['Saved instructions','You turn rough developer notes into release notes that customers can read…',true],['Attached files','Excerpt from your attached refund policy: "Refunds are accepted within …"',true],['Your question','What is our refund window?',true]];
+let asOn=[true,true,true];
+$('#asm').innerHTML=AS.map((a,i)=>`<button data-i="${i}" aria-pressed="true">${a[0]}</button>`).join('');
+function renderAs(){
+  $$('#asm button').forEach((b,i)=>b.setAttribute('aria-pressed',asOn[i]));
+  $('#stk').innerHTML=AS.map((a,i)=>`<div class="lay ${asOn[i]?'':'off'}"><b>${i===2?'You type':'The platform pastes for you'} · ${a[0]}${asOn[i]?'':' (off)'}</b>${esc(a[1])}</div>`).join('');
+}
+$('#asm').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const i=+b.dataset.i;asOn[i]=!asOn[i];renderAs()});renderAs();
+
+/* step checklists */
+const ST={
+ gsteps:['Go to <b>gemini.google.com</b> and find <b>Customise</b> in the left sidebar. If you do not see it, click <b>More</b> first.','On the Customise page, open the <b>Skills</b> tab. You will see Discover, Connectors and Skills across the top.','Click <b>Create</b> at the top right. You get three options: Create with Gemini, Create manually, and Upload. Choose <b>Create manually</b>.','Fill in the three fields: Name, Description, Instructions (see below).','Paste the instructions block below into Instructions.','Click <b>Create</b> at the top right.','Start a new chat and type <code>/</code> followed by the skill name. Then paste the developer notes.','Check three things in the output: did it drop the refactor, did it drop JIRA-8821, and did it group correctly.'],
+ csteps:['Open <b>Settings</b>, then <b>Personalization</b>. Scroll to <b>Custom instructions</b> and open the <b>ChatGPT</b> row, described as "Give ChatGPT extra instructions and context for all chats".','Put something genuinely yours in it (example below).','Start any new chat and ask anything. The change applies everywhere, with no project involved.'],
+ psteps:['In the left sidebar, find the <b>Projects</b> section and click the <b>add new project</b> control next to it.','Name it "Release Notes".','Open the project\'s instructions and paste the same instruction block from Section 3. The same text. That is the point.','Start a chat inside the project, paste the same developer notes, and compare the output to what your Gemini skill produced.'],
+ clsteps:['Go to <b>claude.ai/projects</b> and click <b>+ New Project</b> at the top right.','Give it a name and a description.','On the project page, click <b>Set project instructions</b>, paste the same block again, and click <b>Save instructions</b>.','Add knowledge with the <b>+</b> button in the project knowledge area on the right.','Run the same notes through it.']
+};
+Object.keys(ST).forEach(id=>{
+  const ul=$('#'+id);
+  ul.innerHTML=ST[id].map((t,i)=>`<li><input type="checkbox" id="${id}${i}"><label for="${id}${i}"><b>Step ${i+1}.</b> ${t}</label></li>`).join('');
+  ul.addEventListener('change',e=>{e.target.closest('li').classList.toggle('done',e.target.checked)});
+});
+
+/* release notes lab */
+const RN={
+ a:'New\n- Dark mode toggle in settings.\n- Export button on the reports page (CSV only for now).\n\nImproved\n- Updated auth-svc to 2.4.1 to fix the token refresh race (JIRA-8821).\n- Refactored the payment retry loop.\n\nFixed\n- Cart no longer loses items when you switch tabs.\n- Date picker shows the right month in Safari.',
+ b:'New\n- Dark mode: switch it on from Settings.\n- Export your reports as CSV from the reports page (CSV is the only format for now).\n\nImproved\n- Sign-in sessions now refresh more reliably.\n\nFixed\n- Your cart no longer loses items when you switch tabs.\n- The date picker now shows the correct month in Safari.'
+};
+function runRN(){
+  const t=$('#rnin').value;
+  const jira=/JIRA-8821/i.test(t),ref=/refactor|retry loop/i.test(t);
+  const heads=['New','Improved','Fixed'].filter(h=>!new RegExp('(^|\\n)\\s*'+h+'\\b').test(t));
+  $('#rnres').innerHTML=row(!ref,ref?'The internal refactor made it into the notes. It only matters to the team, so it should be left out.':'The refactor was dropped.')+
+   row(!jira,jira?'The ticket number JIRA-8821 is still there.':'JIRA-8821 was dropped.')+
+   row(heads.length===0,heads.length?'Missing group heading(s): '+heads.join(', '):'Grouped under New, Improved, Fixed.');
+}
+$('#rnin').value=RN.a;runRN();$('#rnin').addEventListener('input',runRN);
+$('#rn1').addEventListener('click',()=>{$('#rn1').setAttribute('aria-pressed',true);$('#rn2').setAttribute('aria-pressed',false);$('#rnin').value=RN.a;runRN()});
+$('#rn2').addEventListener('click',()=>{$('#rn2').setAttribute('aria-pressed',true);$('#rn1').setAttribute('aria-pressed',false);$('#rnin').value=RN.b;runRN()});
+
+/* where (chatgpt scope) */
+function showW(k){
+  $('#w1').setAttribute('aria-pressed',k===1);$('#w2').setAttribute('aria-pressed',k===2);
+  $('#wstk').innerHTML=`<div class="lay"><b>Always applied · Custom instructions (global)</b>I am a backend developer in India. Use metric units and rupees. Answer first, explanation after…</div>`+
+   (k===2?`<div class="lay"><b>Applied here only · Project instructions + files</b>You turn rough developer notes into release notes that customers can read…</div>`:`<div class="lay off"><b>Not applied · Project instructions (you are outside the project)</b>You turn rough developer notes into release notes…</div>`)+
+   `<p class="note" style="margin:6px 0 0">${k===2?'Both are applied. They stack rather than compete: fine when they agree, confusing when they contradict.':'Only the global layer applies. Anything task-specific you put there would leak into every unrelated chat like this one.'}</p>`;
+}
+$('#w1').addEventListener('click',()=>showW(1));$('#w2').addEventListener('click',()=>showW(2));showW(1);
+
+/* need */
+const NEED={skill:['Gemini skill',1,'A skill is the only one of the three you can summon by name, with <code>/</code>, without leaving the chat you are in.'],project:['A project (ChatGPT or Claude)',[2,3],'A project is a workspace with a history: the chats about this one job are kept together, with their own instructions and files.'],ci:['ChatGPT custom instructions',2,'A rule that applies to everything you ever ask is the global layer, which is ChatGPT\'s custom instructions. Claude has no equivalent: its instructions are per project.']};
+group('#need button',b=>{
+  const n=NEED[b.dataset.n];$('#needout').innerHTML=`<b>${n[0]}</b><p style="margin:6px 0 0">${n[2]}</p>`;
+  const cols=[].concat(n[1]);
+  $$('#ptab [data-c]').forEach(c=>c.classList.toggle('hc',cols.includes(+c.dataset.c)));
+});
+
+/* pages */
+const RET=[2,3,9,14,22,31,40,47,55,63,68,80];
+function renderPages(){
+  const t=+$('#tp').value;$('#tpo').textContent=t;
+  let h='';for(let i=1;i<=90;i++)h+=`<div class="pg ${RET.includes(i)?'ret':''} ${i===t?'tgt':''}">${i}</div>`;
+  $('#pages').innerHTML=h;
+  const hit=RET.includes(t);
+  $('#pnote').innerHTML=hit?`<b class="ok">✓ Page ${t} was retrieved.</b><p style="margin:6px 0 0">The model can read the rule, so the answer can come from your file.</p>`:`<b class="bad">✗ Page ${t} was not retrieved.</b><p style="margin:6px 0 0">The model never saw it. It can still answer confidently, from the pages it did see or from general knowledge, and get the rule wrong. Adding "answer only from the attached files, and say so if it is not in them" gives it a way to say it could not find it.</p>`;
+}
+$('#tp').addEventListener('input',renderPages);renderPages();
+
+/* research loop */
+const RL=[['1 · Plan','The model plans what to look into.'],['2 · Search','It runs many searches.'],['3 · Read','It reads what it finds.'],['4 · Write','It writes a structured report with citations.'],['5 · You check','The citations are the point, and only worth anything if somebody clicks them.']];
+let rs=0;
+function renderRL(){
+  $('#rstk').innerHTML=RL.map((r,i)=>`<div class="lay ${i>rs?'off':''}" style="${i===rs?'background:var(--maroon-tint)':''}"><b>${r[0]}</b>${r[1]}</div>`).join('');
+  $('#rstep').textContent='Step '+(rs+1)+' of '+RL.length;$('#rprev').disabled=rs===0;$('#rnext').disabled=rs===RL.length-1;
+}
+$('#rprev').addEventListener('click',()=>{if(rs>0){rs--;renderRL()}});$('#rnext').addEventListener('click',()=>{if(rs<RL.length-1){rs++;renderRL()}});renderRL();
+
+/* citations */
+const cs=new Array(18).fill(0);
+const LBL=['unchecked','checked ✓','failed ✗'];
+function renderC(){
+  $('#cites').innerHTML=cs.map((s,i)=>`<button data-i="${i}" class="c${s+1}" aria-label="Citation ${i+1}: ${LBL[s]}">${s===1?'✓ ':s===2?'✗ ':''}${i+1}</button>`).join('');
+  const ok=cs.filter(x=>x===1).length,bad=cs.filter(x=>x===2).length,un=18-ok-bad;
+  $('#cres').innerHTML=`<b>${ok} checked and supporting · ${bad} failed · ${un} still unverified</b><p style="margin:6px 0 0">${bad?'Failures show the report needs checking before it carries your name. They do not grade the citations you have not opened, in either direction.':'Until you open a citation, it is unverified, however confident the report sounds.'}</p>`;
+}
+$('#cites').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const i=+b.dataset.i;cs[i]=(cs[i]+1)%3;renderC();$('#cites button[data-i="'+i+'"]').focus()});renderC();
+
+/* timeline */
+const TL=[['2026-09-11','11 Sep 2026','OpenAI announces Custom GPTs are retiring.'],['2026-11-17','17 Nov 2026','Gems become read-only: you can no longer make one.'],['2026-12-11','11 Dec 2026','Custom GPTs stop running.'],['2026-12-17','17 Dec 2026','Gems are removed.'],['2027-03-01','March 2027','Workspace or business accounts (Gems column of the table above).'],['2027-06-01','June 2027','Education accounts (Gems column of the table above).']];
+const now=new Date();
+$('#tl').innerHTML=TL.map(t=>{const past=new Date(t[0])<=now;return `<div class="ev ${past?'past':''}"><span class="st">${past?'Passed':'Upcoming'}</span><b>${t[1]}</b><div>${t[2]}</div></div>`}).join('');
+
+/* lives */
+function showL(k){$('#lv').setAttribute('aria-pressed',k==='v');$('#lo').setAttribute('aria-pressed',k==='o');
+  $('#lres').innerHTML=k==='v'?'<b class="bad">✗ The box is retired and your prompt goes with it.</b><p style="margin:6px 0 0">You have to dig your instructions back out of the product, if it lets you, before the stop date.</p>':'<b class="ok">✓ You paste the same text into whatever replaces it.</b><p style="margin:6px 0 0">Just like <code>SYSTEM_PROMPT</code> in your own file: no vendor can retire it. The platform\'s box is only a place you paste into.</p>'}
+$('#lv').addEventListener('click',()=>showL('v'));$('#lo').addEventListener('click',()=>showL('o'));showL('v');
+})();
+</script>
+</body>
+</html>
